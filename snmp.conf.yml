@@ -1,0 +1,26 @@
+handler:
+   prefix: /v1/snmp
+   listen: 0.0.0.0:83
+
+#Caching results from store
+cache:
+   defaults:
+      purge: 600
+      expiration: 300
+#Кеширование ответов с оборудования в секундах
+   remote_expiration_sec: 0
+
+
+system:
+#Ограничение на максимальное количество одновременных запросов на один хост
+  max_threads_for_host: 3
+#Ограничение на максимальное количество одновременных snmp запросов   по одному http запросу
+  max_threads_for_request: 10
+#Ограничение на максимальное количество потоков во всей системе(если много клиентов отправят одновременные запросы)
+  max_threads_in_node: 10000
+
+
+snmp:
+  timeout: 3
+  repeats: 5
+  use_bulk: true
