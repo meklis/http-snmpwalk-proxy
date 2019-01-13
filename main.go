@@ -8,8 +8,9 @@ import (
 	"gopkg.in/yaml.v2"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/soniah/gosnmp"
+	"log"
 	"time"
+	"helpprovider_snmp/handlers"
 )
 
 type Configuration struct{
@@ -43,64 +44,48 @@ func init()  {
 	flag.Parse()
 }
 
-func main () {
-	snmp:=gosnmp.Default
-
-	snmp.Timeout = time.Duration(time.Second * 4)
-	snmp.Retries = 3
-	snmp.Community = "oblnswsnmpcomrw"
-	snmp.Target = "10.50.124.132"
-	if err := snmp.Connect(); err != nil {
-		panic(err)
-	}
-	fmt.Println(snmp.Get([]string{".1.3.6.1.2.1.31.1.1.1.18.1"}))
-}
-
-/*
 func main() {
 	// Load configuration
 	if err := LoadConfig(); err != nil {
 		log.Panicln("ERROR LOADING CONFIGURATION FILE:", err.Error())
 	}
 
+	SnmpTimeOut := time.Second * time.Duration(Config.Snmp.Timeout)
+
 	//Define gin
 	r := gin.Default()
 
-	//Define routes
-	r.GET("/", func(c *gin.Context) {
+	r.Use(func(c *gin.Context) {
+		c.Set("SnmpRepeats", Config.Snmp.Repeats)
+		c.Next()
+	})
+	r.Use(func(c *gin.Context) {
+		c.Set("SnmpTimeout", SnmpTimeOut)
+		c.Next()
+	})
+
+
+	r.GET("/walk",handlers.GetWalk)
+	r.GET("/bulk_walk",handlers.GetBulkWalk)
+	r.GET("/get", handlers.GetGet)
+	r.GET("/set", handlers.GetSet)
+	r.POST("/get", func(c *gin.Context) {
 		r := r.Routes()
 		c.JSON(200, ModuleStat{ModuleName: "SNMP walk module", Routes: r})
 	})
 
-	//Define routes
-	r.GET("/walk/:ip", func(c *gin.Context) {
+	r.POST("/walk", func(c *gin.Context) {
 		r := r.Routes()
 		c.JSON(200, ModuleStat{ModuleName: "SNMP walk module", Routes: r})
 	})
 
-	//Define routes
-	r.GET("/get/:ip", func(c *gin.Context) {
+
+	r.POST("/bulk_walk", func(c *gin.Context) {
 		r := r.Routes()
 		c.JSON(200, ModuleStat{ModuleName: "SNMP walk module", Routes: r})
 	})
 
-	//Define routes
-	r.GET("/set/:ip", func(c *gin.Context) {
-		r := r.Routes()
-		c.JSON(200, ModuleStat{ModuleName: "SNMP walk module", Routes: r})
-	})
-
-	r.POST("/get/:ip", func(c *gin.Context) {
-		r := r.Routes()
-		c.JSON(200, ModuleStat{ModuleName: "SNMP walk module", Routes: r})
-	})
-
-	r.POST("/walk/:ip", func(c *gin.Context) {
-		r := r.Routes()
-		c.JSON(200, ModuleStat{ModuleName: "SNMP walk module", Routes: r})
-	})
-
-	r.POST("/set/:ip", func(c *gin.Context) {
+	r.POST("/set", func(c *gin.Context) {
 		r := r.Routes()
 		c.JSON(200, ModuleStat{ModuleName: "SNMP walk module", Routes: r})
 	})
@@ -108,7 +93,7 @@ func main() {
 
 	//Server http server
 	r.Run(Config.Handler.Listen)
-}*/
+}
 func LoadConfig() error {
 	bytes, err := ioutil.ReadFile(pathConfig)
 	if err != nil {

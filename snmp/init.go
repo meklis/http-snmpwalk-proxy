@@ -2,19 +2,24 @@ package snmp
 
 import (
 	"github.com/soniah/gosnmp"
+	"fmt"
+	"strings"
 	"time"
-	"./structs"
 )
 
 type SnmpVersion uint8
 
 // SnmpVersion 1, 2c and 3 implemented
 const (
-//	Version1  SnmpVersion = 0x0
+	//	Version1  SnmpVersion = 0x0
 	Version2c SnmpVersion = 0x1
-//	Version3  SnmpVersion = 0x3
+	//	Version3  SnmpVersion = 0x3
 )
 
+var (
+	types =  make(map[byte]string)
+	typesInverse = make(map[string]byte)
+)
 
 type InitStruct struct {
 	Version SnmpVersion
@@ -30,9 +35,6 @@ type Snmp struct {
 	Err error
 }
 
-var (
-	types map[uint8]string
-)
 func init() {
 	types[0x00] = "EndOfContents"
 	types[0x00] = "UnknownType"
@@ -56,6 +58,10 @@ func init() {
 	types[0x80] = "NoSuchObject"
 	types[0x81] = "NoSuchInstance"
 	types[0x82] = "EndOfMibView"
+
+	for bt, str := range types {
+		typesInverse[str] = bt
+	}
 }
 
 func Connect(conf InitStruct) (error, *Snmp) {
@@ -70,20 +76,41 @@ func Connect(conf InitStruct) (error, *Snmp) {
 	if err := snmp.Connect(); err != nil {
 		return  err, nil
 	}
+	resp.GoSnmp = snmp
 	return nil,resp
 }
-
-func (s *Snmp) Get(oid string) (error, []structs.SnmpResp) {
-	res, err := s.GoSnmp.Get([]string{oid})
-	if err != nil {
-		return  err, nil
-	}
-	resp := make([]structs.SnmpResp,0)
-	for _, r := range  res.Variables {
-		r.Type
-	}
+func (c *Snmp) Close() {
+	c.GoSnmp.Conn.Close()
+	c = nil
 }
 
-func getType(tp uint8) string {
- 	types := make([])
+
+
+
+func convertValue(tp gosnmp.Asn1BER, val interface{}) (resp interface{}){
+	switch tp {
+	case 0x03: return fmt.Sprintf("%v", string(val.([]byte)))
+	case 0x04: return fmt.Sprintf("%v", string(val.([]byte)))
+	}
+	return  val
+}
+
+func getType(tp byte) string {
+	return types[tp]
+}
+func getTypeInverse(tp string) byte {
+	return typesInverse[tp]
+}
+
+func stringToBytes(str string) string {
+	bytes := []byte(str)
+	arr := ""
+	for _, b := range bytes {
+		bb := fmt.Sprintf("%X:", b)
+		if len(bb) == 2 {
+			bb = "0"+bb
+		}
+		arr += bb
+	}
+	return strings.Trim(arr, ":")
 }

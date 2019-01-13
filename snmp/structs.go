@@ -1,4 +1,4 @@
-package structs
+package snmp
 
 type Request struct {
 	Ip string `json:"ip"`
@@ -8,7 +8,6 @@ type Request struct {
 	Timeout int `json:"timeout"`
 	Type string `json:"type"`
 	Value string `json:"value"`
-	Version string `json:"version"`
 
 }
 
@@ -22,7 +21,9 @@ type Response struct {
 type SnmpResp struct {
 	Oid string `json:"oid"`
 	HexValue string `json:"hex_value"`
-	StringValue string `json:"string_value"`
+	Value interface{} `json:"value"`
 	Type string `json:"type"`
 }
+
+
 
