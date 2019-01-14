@@ -8,7 +8,7 @@ type Request struct {
 	Timeout int `json:"timeout"`
 	Type string `json:"type"`
 	Value string `json:"value"`
-
+	UseCache bool `json:"use_cache"`
 }
 
 type Response struct {

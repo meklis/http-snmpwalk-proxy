@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"time"
-	"helpprovider_snmp/handlers"
+	"./handlers"
 )
 
 type Configuration struct{
