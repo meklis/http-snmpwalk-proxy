@@ -6,8 +6,7 @@ import (
 	"time"
 	"net/http"
 	"log"
-	"strconv"
-	"fmt"
+	"../snmp-pooller"
 )
 
 func GetGet(c *gin.Context) {
@@ -37,17 +36,7 @@ func GetGet(c *gin.Context) {
 		return
 	}
 	defer conn.Close()
-	resp := snmp.Response{
-		Ip: Ip,
-		Oid: Oid,
-	}
-	err, data := conn.Get(Oid)
-	if err != nil {
-		resp.Error = err.Error()
-	} else {
-		resp.Response = data
-	}
-	c.JSON(http.StatusOK, resp)
+
 	return
 }
 
@@ -67,30 +56,17 @@ func GetWalk(c *gin.Context) {
 		AbortWithStatus(c, http.StatusBadRequest, "Oid can not be empty")
 		return
 	}
-	err, conn := snmp.Connect(snmp.InitStruct{
-		Version: snmp.Version2c,
-		TimeoutSec: c.MustGet("SnmpTimeout").(time.Duration),
-		Repeats: c.MustGet("SnmpRepeats").(int),
-		Community: Community,
-		Ip: Ip,
-	})
-	if err != nil {
-		c.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	defer conn.Close()
-	resp := snmp.Response{
-		Ip: Ip,
-		Oid: Oid,
-	}
-	err, data := conn.Walk(Oid)
-	if err != nil {
-		resp.Error = err.Error()
-	} else {
-		resp.Response = data
-	}
-	c.JSON(http.StatusOK, resp)
-	return
+	 P := c.MustGet("POOLLER").(*pooller.Worker)
+	 c.JSON(200, P.Walk([]pooller.Request{
+	 	pooller.Request{
+	 		Ip: Ip,
+	 		Oid: Oid,
+	 		Community: Community,
+	 		Timeout: 5,
+	 		Repeats: 5,
+	 		UseCache: true,
+		},
+	 }))
 }
 func GetBulkWalk(c *gin.Context) {
 
@@ -120,22 +96,12 @@ func GetBulkWalk(c *gin.Context) {
 		return
 	}
 	defer conn.Close()
-	resp := snmp.Response{
-		Ip: Ip,
-		Oid: Oid,
-	}
-	err, data := conn.WalkBulk(Oid)
-	if err != nil {
-		resp.Error = err.Error()
-	} else {
-		resp.Response = data
-	}
-	c.JSON(http.StatusOK, resp)
+
 	return
 }
 
 func GetSet(c *gin.Context) {
-	Ip, Community, Oid , Type, Value:= formatRequest(c)
+	Ip, Community, _ , Type, Value:= formatRequest(c)
 	if Ip == "" {
 		AbortWithStatus(c, http.StatusBadRequest, "Ip can not be empty")
 		return
@@ -164,25 +130,7 @@ func GetSet(c *gin.Context) {
 		return
 	}
 	defer conn.Close()
-	resp := snmp.Response{
-		Ip: Ip,
-		Oid: Oid,
-	}
-	var val interface{}
-	val = Value
-	if Type != "OctetString" && Type != "BitString" && Type != "IPAddress" && Type != "ObjectIdentifier" && Type != "ObjectDescription" {
-		i, err := strconv.ParseInt(fmt.Sprintf("%v",Value), 10, 32)
-		if err == nil {
-			val = int(i)
-		}
-	}
-	err, data := conn.Set(Oid,Type,val)
-	if err != nil {
-		resp.Error = err.Error()
-	} else {
-		resp.Response = data
-	}
-	c.JSON(http.StatusOK, resp)
+
 	return
 }
 
