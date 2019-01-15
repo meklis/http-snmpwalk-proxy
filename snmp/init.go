@@ -72,7 +72,9 @@ func Connect(conf InitStruct) (error, *Snmp) {
 	snmp.Timeout = conf.TimeoutSec
 	snmp.Retries = conf.Repeats
 	snmp.Community = conf.Community
+	snmp.MaxRepetitions = uint8(conf.Repeats)
 	snmp.Target = conf.Ip
+	snmp.ExponentialTimeout = false
 	if err := snmp.Connect(); err != nil {
 		return  err, nil
 	}

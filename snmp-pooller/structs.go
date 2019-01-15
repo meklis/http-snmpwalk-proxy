@@ -3,7 +3,8 @@ package pooller
 import (
 	"time"
 	"github.com/patrickmn/go-cache"
-	"helpprovider_snmp/snmp"
+	"../snmp"
+	"../logger"
 )
 
 type Pooller struct {
@@ -20,13 +21,13 @@ type StatusPooler struct {
 }
 
 type Request struct {
-	Ip string `json:"ip"`
-	Community string `json:"community"`
-	Oid string `json:"oid"`
+	Ip string `json:"ip" snmp_get:"required,ip_address" snmp_set:"required,ip_address"`
+	Community string `json:"community" snmp_get:"required,exclude_specials" snmp_set:"required,exclude_specials"`
+	Oid string `json:"oid" snmp_get:"required,oid" snmp_set:"required,oid"`
 	Repeats int `json:"repeats"`
 	Timeout int `json:"timeout"`
-	Type string `json:"type"`
-	Value string `json:"value"`
+	Type string `json:"type" snmp_set:"required,exclude_specials"`
+	Value string `json:"value" snmp_set:"required,exclude_specials"`
 	UseCache bool `json:"use_cache"`
 }
 
@@ -49,26 +50,26 @@ const (
 
 
 type InitWorkerConfiguration struct {
-	Limit struct{
-		OneRequest int
-		OneDevice int
-		CountWorkers int
-		RequestResetTimeout int
-		ResponseCollectorCount int
-	}
-	Cache struct{
-		Purge time.Duration
-		Expiration time.Duration
-		RemoteResponseCacheTimeout time.Duration
-	}
+	LimitOneRequest int
+	LimitOneDevice int
+	LimitCountWorkers int
+	LimitRequestResetTimeout int
+	LimitResponseCollectorCount int
+	CachePurge time.Duration
+	CacheExpiration time.Duration
+	CacheRemoteResponseCacheTimeout time.Duration
+	DefaultSnmpTimeout int
+	DefaultSnmpRepeats int
 }
 
 type Worker struct {
 	Config InitWorkerConfiguration
-	Cache *cache.Cache
-	RequestCollector *cache.Cache
-	LimitCountForSwitch *cache.Cache
-	LimitCountForRequest *cache.Cache
-	RequestQueue chan Pooller
-	ResponseQueue chan Pooller
+	Logger *logger.Logger
+	cache *cache.Cache
+	requestCollector *cache.Cache
+	limitCountForSwitch *cache.Cache
+	limitCountForRequest *cache.Cache
+	requestQueue chan Pooller
+	responseQueue chan Pooller
+
 }

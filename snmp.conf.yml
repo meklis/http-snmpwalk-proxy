@@ -24,6 +24,13 @@ system:
   request_reset_timeout_sec: 600
 
 snmp:
-  timeout: 3
-  repeats: 5
+#Таймаут на опрос по SNMP
+  timeout: 2
+#Количество повторных запросов при ошибке 1 + repeats
+  repeats: 2
 
+logger:
+   console:
+      enabled: true
+      enable_color: true
+      log_level: 2

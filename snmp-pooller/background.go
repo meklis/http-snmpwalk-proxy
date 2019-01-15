@@ -1,21 +1,21 @@
 package pooller
 
 import (
-	"helpprovider_snmp/snmp"
-	"log"
+	"../snmp"
 	"time"
 )
 
-func backgroundWorker(w *Worker) {
+func backgroundWorker(w *Worker, numWorker int) {
 	for {
-		request :=<- w.RequestQueue
-		log.Printf("New request in worker for requestId:%v ",request.UUid)
+		request :=<- w.requestQueue
+		w.Logger.DebugF("Received request %v in background worker %v", request.UUid, numWorker)
 		if request.RequestBody.UseCache && request.Type != requestSet {
 			exist, resp := w.getCacheResponseFromDevice(request)
 			if exist  {
+				w.Logger.DebugF("Find response for %v with device %v, with oid %v and type %v in cache", request.UUid, request.RequestBody.Ip, request.RequestBody.Oid, request.Type)
 				resp.ResponseBody.FromCache = true
 				resp.UUid = request.UUid
-				w.ResponseQueue <- resp
+				w.responseQueue <- resp
 				continue
 			}
 		}
@@ -30,6 +30,7 @@ func backgroundWorker(w *Worker) {
 
 		//If error when connecting - continue this iteration
 		if err != nil {
+			w.Logger.WarningF("Problem create snmp connection for request %v with err: %v", request.UUid, err.Error())
 			request.ResponseBody = Response{
 				Ip: request.RequestBody.Ip,
 				Response: nil,
@@ -37,7 +38,7 @@ func backgroundWorker(w *Worker) {
 				FromCache: false,
 				Oid: request.RequestBody.Oid,
 			}
-			w.ResponseQueue <- request
+			w.responseQueue <- request
 			continue
 		}
 
@@ -55,6 +56,7 @@ func backgroundWorker(w *Worker) {
 		}
 
 		if err != nil {
+			w.Logger.InfoF("Error in request %v, switch %v: %v", request.UUid, request.RequestBody.Ip, err.Error())
 			request.ResponseBody = Response{
 				Ip: request.RequestBody.Ip,
 				Response: nil,
@@ -72,18 +74,18 @@ func backgroundWorker(w *Worker) {
 			}
 			w.setCacheResponseFromDevice(request)
 		}
-		w.ResponseQueue <- request
+		w.responseQueue <- request
 		conn.Close()
 	}
 }
 
-func workerResponseCollector(w *Worker) {
+func workerResponseCollector(w *Worker, numWorker int) {
 	for {
-		response :=<- w.ResponseQueue
-		log.Printf("New response in collector for requestId: %v ",response.UUid)
+		response :=<- w.responseQueue
+		w.Logger.DebugF("New response in collector for requestId: %v ",response.UUid)
 		w.deleteCountFromRequest(response.UUid)
 		w.deleteRequestForSwitch(response.RequestBody.Ip)
 		w.addRequestData(response.UUid, response)
-		log.Printf("Sended ressponse to RequestData with id: %v ",response.UUid)
+		w.Logger.DebugF("Sended response to RequestData with id: %v ",response.UUid)
 	}
 }
