@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"./logger"
 	"os"
+	"fmt"
 )
 
 type Configuration struct{
@@ -52,6 +53,7 @@ type Configuration struct{
 var (
 	Config Configuration
 	pathConfig string
+	lg *logger.Logger
 )
 
 func init()  {
@@ -59,19 +61,32 @@ func init()  {
 	flag.Parse()
 }
 
+//@TODO Realize set logger parameters from config
 func main() {
 	// Load configuration
 	if err := LoadConfig(); err != nil {
 		log.Panicln("ERROR LOADING CONFIGURATION FILE:", err.Error())
 	}
-	logPooler, _ := logger.New("pooler", 1, os.Stdout)
+	lg, _ = logger.New("pooler", 1, os.Stdout)
 
 	gin.SetMode("release")
 
-
 	//Define gin
+	gin.DefaultErrorWriter  = ioutil.Discard
+	gin.DefaultWriter  = ioutil.Discard
 	r := gin.Default()
+	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 
+		lg.Debug(fmt.Sprintf("HTTP | %3d | %13v | %15s | %-7s  %s   %s",
+			param.StatusCode,
+			param.Latency,
+			param.ClientIP,
+			param.Method,
+			param.Path,
+			param.ErrorMessage,
+		))
+		return ""
+	}))
 
 	//Initial snmp pooller
 	pool := pooller.New(pooller.InitWorkerConfiguration{
@@ -89,7 +104,7 @@ func main() {
 	})
 
 	//logPooler.SetLogLevel(logger.WarningLevel)
-	pool.Logger = logPooler
+	pool.Logger = lg
 
 	r.Use(func(c *gin.Context) {
 		c.Set("POOLLER", pool)
@@ -100,7 +115,7 @@ func main() {
 		for {
 			data := pool.GetStatus()
 			bytes, _ := json.Marshal(data)
-			logPooler.DebugF("STATUS: %v",string(bytes))
+			lg.DebugF("STATUS: %v",string(bytes))
 			time.Sleep(time.Second * 3)
 		}
 	}()
@@ -235,7 +250,7 @@ func LoadConfig() error {
 }
 
 func AbortWithStatus(c *gin.Context, code int, msg string) {
-	log.Println(msg)
+	lg.WarningF(msg)
 	c.String(code, msg)
 }
 

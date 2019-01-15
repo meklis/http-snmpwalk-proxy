@@ -56,7 +56,7 @@ func backgroundWorker(w *Worker, numWorker int) {
 		}
 
 		if err != nil {
-			w.Logger.InfoF("Error in request %v, switch %v: %v", request.UUid, request.RequestBody.Ip, err.Error())
+			w.Logger.WarningF("Error in request %v, switch %v: %v", request.UUid, request.RequestBody.Ip, err.Error())
 			request.ResponseBody = Response{
 				Ip: request.RequestBody.Ip,
 				Response: nil,

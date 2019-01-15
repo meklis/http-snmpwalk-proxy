@@ -6,7 +6,6 @@ import (
 	"github.com/satori/go.uuid"
 	"../logger"
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -28,7 +27,6 @@ func GetDefaultConfiguration() InitWorkerConfiguration {
 
 
 func New(config InitWorkerConfiguration) *Worker {
-	log.Println("Initialize requestPooler")
 	worker := new(Worker)
 
 	worker.Config = config
@@ -39,11 +37,9 @@ func New(config InitWorkerConfiguration) *Worker {
 	worker.requestQueue = make(chan Pooller, config.LimitCountWorkers)
 	worker.responseQueue = make(chan Pooller, config.LimitResponseCollectorCount)
 	for i := 0; i <= config.LimitCountWorkers; i++ {
-		log.Println("Start snmp worker")
 		go backgroundWorker(worker, i)
 	}
 	for i := 0; i <= config.LimitCountWorkers; i++ {
-		log.Println("Start response collector")
 		go workerResponseCollector(worker, i)
 	}
 	if worker.Logger == nil {
@@ -57,14 +53,15 @@ func (w *Worker) Get(requests []Request) []Response {
 }
 
 func (w *Worker) addToPool( requests []Request, requestType RequestType) []Response {
-	w.Logger.DebugF("New pool add request, length %v with type", len(requests))
 	//Generate requestId
 	requestUUid := ""
 	if  uuid, err :=  uuid.NewV4(); err == nil {
 		requestUUid = uuid.String()
 	}
+	w.Logger.DebugF("Add new request to pool, length request: %v, with generated uuid: %v", len(requests), requestUUid)
 
 	//Rebuild request for work with as map
+	RequestsMappedForDebug := make(map[string]Pooller)
 	requestMapped := make(map[string]Pooller)
 	for _, r := range  requests  {
 		if r.Timeout == 0 {
@@ -79,43 +76,69 @@ func (w *Worker) addToPool( requests []Request, requestType RequestType) []Respo
 			ResponseBody: Response{},
 			Type: requestType,
 		}
+		RequestsMappedForDebug[fmt.Sprintf("%v:%v", r.Ip, r.Oid)] = Pooller{
+			UUid:         requestUUid,
+			RequestBody:  r,
+			ResponseBody: Response{},
+			Type: requestType,
+		}
 	}
-
+	countOfStartRequests := len(requestMapped)
 	//Sending requests to pool
 	for {
 		if len(requestMapped) == 0 {
+			w.Logger.DebugF("Requests are no longer in the buffer, waiting for an answer for uuid %v", requestUUid)
 			break
 		}
 		for keyName, poolItem := range requestMapped {
-			if count := w.addCountFromRequest(poolItem.UUid); count >= w.Config.LimitOneRequest {
+			if count := w.getCountFromRequest(poolItem.UUid); count >= w.Config.LimitOneRequest {
+				//w.Logger.WarningF("Reached limit of async workers in request for uuid %v (count requests: %v, limit: %v)", requestUUid, count, w.Config.LimitOneRequest)
 				continue
 			}
-			if count := w.addRequestForSwitch(poolItem.RequestBody.Ip); count >= w.Config.LimitOneDevice {
+			if count := w.getCountRequestForSwitch(poolItem.RequestBody.Ip); count >= w.Config.LimitOneDevice {
+				//w.Logger.WarningF("Reached limit of async workers for switch %v", poolItem.RequestBody.Ip)
 				continue
 			}
+			w.addCountFromRequest(poolItem.UUid)
+			w.addRequestForSwitch(poolItem.RequestBody.Ip)
+			w.Logger.DebugF("Send request ip:%v, oid:%v, retries:%v, timeout:%v, use_cache:%v to pool with requestId %v", poolItem.RequestBody.Ip,
+				poolItem.RequestBody.Oid,
+				poolItem.RequestBody.Repeats,
+				poolItem.RequestBody.Timeout,
+				poolItem.RequestBody.UseCache,
+				requestUUid,
+					)
 			w.requestQueue <- poolItem
 			delete(requestMapped, keyName)
 		}
 	}
+	requestMapped = nil
 	startWaitingResponse := time.Now().Unix()
 	response := make([]Response, 0)
 	for {
 		poollers := w.getRequestData(requestUUid)
-		if len(poollers) >= len(requests) {
+		if len(poollers) >= countOfStartRequests {
 			for _, pool := range poollers {
+				w.Logger.DebugF("Received response from %v-%v with requestId %v", pool.RequestBody.Ip,pool.RequestBody.Oid,requestUUid)
 				response = append(response, pool.ResponseBody)
 			}
 			break
 		}
 		if (time.Now().Unix() - startWaitingResponse) >  int64(w.Config.LimitRequestResetTimeout) {
-			log.Println("Timeout waiting response for request", requestUUid)
+			lenNoResp := countOfStartRequests - len(poollers)
+			w.Logger.ErrorF("Reached timeout for request waiter, no response from %v requests, with requestId: %v",lenNoResp, requestUUid)
 			for _, pool := range poollers {
 				response = append(response, pool.ResponseBody)
+				delete(RequestsMappedForDebug, fmt.Sprintf("%v:%v", pool.RequestBody.Ip, pool.RequestBody.Oid))
+			}
+			for _, d := range RequestsMappedForDebug {
+				w.Logger.ErrorF("Did not wait for an answer from %v with oid %v, requestId %v",d.RequestBody.Ip, d.RequestBody.Oid, requestUUid)
 			}
 			break
 		}
 		time.Sleep(time.Millisecond * 10)
 	}
+	RequestsMappedForDebug = nil
 	w.delRequestData(requestUUid)
 	return  response
 }

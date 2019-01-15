@@ -35,7 +35,7 @@ type Response struct {
 	Ip string `json:"ip"`
 	Error string  `json:"error"`
 	Oid string  `json:"oid"`
-	Response []snmp.SnmpResp `json:"response,omitempty"`
+	Response []snmp.SnmpResp `json:"response"`
 	FromCache bool `json:"from_cache"`
 }
 

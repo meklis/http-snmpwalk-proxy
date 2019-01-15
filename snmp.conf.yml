@@ -13,21 +13,21 @@ cache:
 
 system:
 #Ограничение на максимальное количество одновременных запросов на один хост
-  max_async_workers_to_host: 3
+  max_async_workers_to_host: 2
 #Ограничение на максимальное количество одновременных snmp запросов   по одному http запросу
   max_async_workers_for_request: 10
 #Количество опросников
-  count_workers: 50
+  count_workers: 10
 #Количество обработчиков ответов с опросников
   response_collector_count: 10
 #Сброс опроса при таймайте свыше
-  request_reset_timeout_sec: 600
+  request_reset_timeout_sec: 180
 
 snmp:
 #Таймаут на опрос по SNMP
-  timeout: 2
+  timeout: 3
 #Количество повторных запросов при ошибке 1 + repeats
-  repeats: 2
+  repeats: 1
 
 logger:
    console:

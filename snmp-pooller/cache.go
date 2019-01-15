@@ -12,7 +12,7 @@ func (w *Worker) getCountRequestForSwitch(swIp string) int {
 		w.Logger.DebugF("(AsyncSwitchCountWorkersCache) Data for count request of switch not found for ip %v, returned count = 0",swIp)
 		return 0
 	} else {
-		w.Logger.DebugF("(AsyncSwitchCountWorkersCache) Count request for switch %v = %v",swIp, count.(int))
+		//w.Logger.DebugF("(AsyncSwitchCountWorkersCache) Count request for switch %v = %v",swIp, count.(int))
 		return  count.(int)
 	}
 }
@@ -99,7 +99,7 @@ func (w *Worker) deleteCountFromRequest(requestId string) int {
 func (w *Worker) getCountFromRequest(requestId string) int {
 	count, exist := w.limitCountForRequest.Get(requestId)
 	if exist {
-		w.Logger.DebugF("(AsyncRequestCountWorkersCache) Cache for request %v with count = %v", requestId, count.(int))
+	//	w.Logger.DebugF("(AsyncRequestCountWorkersCache) Cache for request %v with count = %v", requestId, count.(int))
 		return  count.(int)
 	} else {
 		w.Logger.DebugF("(AsyncRequestCountWorkersCache) Cache for request %v not exist when requested count", requestId)
@@ -120,8 +120,8 @@ func (w *Worker) addRequestData(requestId string, poolItem Pooller) int {
 	} else {
 		poollers := data.([]Pooller)
 		poollers = append(poollers, poolItem)
-		if err := w.limitCountForSwitch.Replace(requestId, poollers, time.Duration(w.Config.LimitRequestResetTimeout + 60) * time.Second); err != nil {
-			w.Logger.WarningF("(limitCountForSwitch) Err add collector data for request %v : %v",err.Error())
+		if err := w.requestCollector.Replace(requestId, poollers, time.Duration(w.Config.LimitRequestResetTimeout + 60) * time.Second); err != nil {
+			w.Logger.WarningF("(limitCountForSwitch) Err add collector data for request %v : %v",requestId, err.Error())
 		}
 		return  len(poollers)
 	}
@@ -144,6 +144,7 @@ func (w *Worker) getRequestData(requestId string) []Pooller {
 
 //Cache for switch data response
 func (w *Worker) setCacheResponseFromDevice(pool Pooller)  {
+	w.Logger.InfoF("Add response to cache from %v, oid %v",pool.RequestBody.Ip, pool.RequestBody.Oid)
 	key := fmt.Sprintf("%v:%v:%v", pool.RequestBody.Ip, pool.RequestBody.Oid, pool.Type)
 	_, exist := w.cache.Get(key)
 	if !exist {
@@ -151,6 +152,7 @@ func (w *Worker) setCacheResponseFromDevice(pool Pooller)  {
 	}
 }
 func (w *Worker) delCacheResponseFromDevice(pool Pooller)  {
+	w.Logger.InfoF("Delete response from cache for %v, oid %v",pool.RequestBody.Ip, pool.RequestBody.Oid)
 	key := fmt.Sprintf("%v:%v:%v", pool.RequestBody.Ip, pool.RequestBody.Oid, pool.Type)
 	_, exist := w.cache.Get(key)
 	if exist {
@@ -158,11 +160,13 @@ func (w *Worker) delCacheResponseFromDevice(pool Pooller)  {
 	}
 }
 func (w *Worker) getCacheResponseFromDevice(pool Pooller) (bool, Pooller) {
+	w.Logger.InfoF("Get response from cache for %v, oid %v",pool.RequestBody.Ip, pool.RequestBody.Oid)
 	key := fmt.Sprintf("%v:%v:%v", pool.RequestBody.Ip, pool.RequestBody.Oid, pool.Type)
 	data, exist := w.cache.Get(key)
 	if exist {
 		return  true, data.(Pooller)
 	} else {
+		w.Logger.InfoF("Cache not exist for %v, oid %v",pool.RequestBody.Ip, pool.RequestBody.Oid)
 		return  false,pool
 	}
 }

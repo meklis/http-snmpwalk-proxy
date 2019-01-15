@@ -44,7 +44,7 @@ func init() {
 	)
 }
 
-func GetValidator(tagName string) *valid.Validate {
+func GetValidator(tagName string,) *valid.Validate {
 	val := valid.New()
 	val.SetTagName(tagName)
 	for _, cust := range validators {
@@ -58,7 +58,6 @@ func GetValidator(tagName string) *valid.Validate {
 			} else if matched {
 				return true
 			}
-			log.Println("REGEX NOT MUTCHED", custom.Regex, custom.Name, fmt.Sprintf("%v", fl.Field()))
 			return false
 		})
 	}
