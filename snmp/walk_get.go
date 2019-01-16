@@ -2,7 +2,6 @@ package snmp
 
 import (
 	"fmt"
-	"strings"
 )
 
 
@@ -25,7 +24,7 @@ func (s *Snmp) Get(oid string) (error, []SnmpResp) {
 }
 func (s *Snmp) Walk(oid string) (error, []SnmpResp) {
 	res, err := s.GoSnmp.WalkAll(oid)
-	if err != nil && !strings.Contains(err.Error(), "timeout") {
+	if err == nil && len(res) == 0 {
 		return   s.Get(oid)
 	} else if err != nil {
 		return err, nil
@@ -45,8 +44,7 @@ func (s *Snmp) Walk(oid string) (error, []SnmpResp) {
 }
 func (s *Snmp) WalkBulk(oid string) (error, []SnmpResp) {
 	res, err := s.GoSnmp.BulkWalkAll( oid )
-
-	if err != nil && !strings.Contains(err.Error(), "timeout") {
+	if err == nil && len(res) == 0 {
 		return   s.Get(oid)
 	} else if err != nil {
 		return err, nil

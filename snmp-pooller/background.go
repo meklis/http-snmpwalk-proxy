@@ -1,11 +1,11 @@
 package pooller
 
 import (
-	"../snmp"
+	"helpprovider_snmp/snmp"
 	"time"
 )
 
-func backgroundWorker(w *Worker, numWorker int) {
+func backgroundWorker(w *Worker, numWorker uint) {
 	for {
 		request :=<- w.requestQueue
 		w.Logger.DebugF("Received request %v in background worker %v", request.UUid, numWorker)
@@ -79,7 +79,7 @@ func backgroundWorker(w *Worker, numWorker int) {
 	}
 }
 
-func workerResponseCollector(w *Worker, numWorker int) {
+func workerResponseCollector(w *Worker, numWorker uint) {
 	for {
 		response :=<- w.responseQueue
 		w.Logger.DebugF("New response in collector with ip %v and requestId: %v",response.RequestBody.Ip, response.UUid)

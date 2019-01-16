@@ -2,9 +2,9 @@ package pooller
 
 import (
 	"time"
-	"github.com/patrickmn/go-cache"
-	"../snmp"
-	"../logger"
+	"github.com/meklis/go-cache"
+	"helpprovider_snmp/snmp"
+	"helpprovider_snmp/logger"
 )
 
 type Pooller struct {
@@ -16,8 +16,8 @@ type Pooller struct {
 type StatusPooler struct {
 	CountRequestQueue int `json:"request_queue"`
 	CountResponseQueue int `json:"response_queue"`
-	CountWorkersForSw map[string]int `json:"workers_in_sw"`
-	CountWorkersForRequest map[string]int `json:"workers_in_request"`
+	CountWorkersForSw map[string]uint `json:"workers_in_sw"`
+	CountWorkersForRequest map[string]uint `json:"workers_in_request"`
 }
 
 type Request struct {
@@ -50,11 +50,11 @@ const (
 
 
 type InitWorkerConfiguration struct {
-	LimitOneRequest int
-	LimitOneDevice int
-	LimitCountWorkers int
-	LimitRequestResetTimeout int
-	LimitResponseCollectorCount int
+	LimitOneRequest uint
+	LimitOneDevice uint
+	LimitCountWorkers uint
+	LimitRequestResetTimeout uint
+	LimitResponseCollectorCount uint
 	CachePurge time.Duration
 	CacheExpiration time.Duration
 	CacheRemoteResponseCacheTimeout time.Duration

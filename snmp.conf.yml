@@ -21,8 +21,7 @@ handler:
 #Caching results from store
 cache:
    defaults:
-      purge: 10
-      expiration: 300
+      purge_sec: 10
 #Кеширование ответов с оборудования в секундах
    remote_expiration_sec: 30
 
@@ -31,15 +30,15 @@ system:
 #Ограничение на максимальное количество одновременных запросов на один хост
   max_async_workers_to_host: 2
 #Ограничение на максимальное количество одновременных snmp запросов   по одному http запросу
-  max_async_workers_for_request: 500
+  max_async_workers_for_request: 5
 #Количество опросников
-  count_workers: 500
+  count_workers: 10
 #Количество обработчиков ответов с опросников
-  response_collector_count: 10
+  response_collector_count: 1
 #Сброс опроса при таймайте свыше
   request_reset_timeout_sec: 30
 #Ограничение на максимальное количество запросов(свитч-оид) в одном запросе
-  max_count_in_one_request: 1000
+  max_count_in_one_request: 10000
 
 snmp:
 #Таймаут на опрос по SNMP

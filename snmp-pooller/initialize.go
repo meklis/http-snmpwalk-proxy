@@ -3,8 +3,8 @@ package pooller
 import (
 	"time"
 	"github.com/satori/go.uuid"
-	"github.com/patrickmn/go-cache"
-	"../logger"
+	"github.com/meklis/go-cache"
+	"helpprovider_snmp/logger"
 	"fmt"
 	"os"
 )
@@ -38,10 +38,10 @@ func New(config InitWorkerConfiguration) *Worker {
 	worker.responseQueue = make(chan Pooller, config.LimitResponseCollectorCount)
 
 
-	for i := 0; i < config.LimitCountWorkers; i++ {
+	for i := uint(0); i < config.LimitCountWorkers; i++ {
 		go backgroundWorker(worker, i)
 	}
-	for i := 0; i < config.LimitCountWorkers; i++ {
+	for i := uint(0); i < config.LimitCountWorkers; i++ {
 		go workerResponseCollector(worker, i)
 	}
 	if worker.Logger == nil {
@@ -119,7 +119,7 @@ func (w *Worker) addToPool( requests []Request, requestType RequestType) []Respo
 	response := make([]Response, 0)
 	for {
 		poollers := w.getRequestData(requestUUid)
-		if len(poollers) >= countOfStartRequests {
+		if len(poollers) == countOfStartRequests {
 			for _, pool := range poollers {
 				w.Logger.DebugF("Received response from %v-%v with requestId %v", pool.RequestBody.Ip,pool.RequestBody.Oid,requestUUid)
 				response = append(response, pool.ResponseBody)
@@ -151,14 +151,14 @@ func (w *Worker) GetStatus()  StatusPooler {
 		CountRequestQueue: len(w.requestQueue),
 		CountResponseQueue: len(w.responseQueue),
 	}
-	status.CountWorkersForSw = make(map[string]int)
-	status.CountWorkersForRequest = make(map[string]int)
+	status.CountWorkersForSw = make(map[string]uint)
+	status.CountWorkersForRequest = make(map[string]uint)
 
 	for name, count := range  w.limitCountForSwitch.Items()  {
-		status.CountWorkersForSw[name] = count.Object.(int)
+		status.CountWorkersForSw[name] = count.Object.(uint)
 	}
 	for name, count := range  w.limitCountForRequest.Items()  {
-		status.CountWorkersForRequest[name] = count.Object.(int)
+		status.CountWorkersForRequest[name] = count.Object.(uint)
 	}
 	return  status
 }

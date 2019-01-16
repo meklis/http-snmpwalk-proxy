@@ -7,18 +7,18 @@ import (
 	"gopkg.in/yaml.v2"
 	"github.com/gin-gonic/gin"
 	"log"
-	"./snmp-pooller"
+	"helpprovider_snmp/snmp-pooller"
 	"time"
 	"encoding/json"
 	"net/http"
-	"./validator"
+	"helpprovider_snmp/validator"
 	"strconv"
-	"./logger"
+	"helpprovider_snmp/logger"
 	"os"
 	"fmt"
 )
 
-const VERSION  = "1.0.7"
+const VERSION  = "1.0.8"
 
 type Configuration struct{
 	Handler struct{
@@ -28,17 +28,16 @@ type Configuration struct{
 	Cache struct{
 		Default struct{
 			Purge int `yaml:"purge"`
-			Expiration int `yaml:"expiration"`
 		} `yaml:"defaults"`
 		RemoteExpirationSec int `yaml:"remote_expiration_sec"`
 	} `yaml:"cache"`
 	System struct{
-		MaxAsyncRequestToHost int `yaml:"max_async_workers_to_host"`
-		MaxAsyncWorkersForRequest int `yaml:"max_async_workers_for_request"`
-		CountWorkers int `yaml:"count_workers"`
-		RequestResetTimeoutSec int `yaml:"request_reset_timeout_sec"`
-		ResponseCollectorCount int `yaml:"response_collector_count"`
-		MaxCountInOneRequest int `yaml:"max_count_in_one_request"`
+		MaxAsyncRequestToHost uint `yaml:"max_async_workers_to_host"`
+		MaxAsyncWorkersForRequest uint `yaml:"max_async_workers_for_request"`
+		CountWorkers uint `yaml:"count_workers"`
+		RequestResetTimeoutSec uint `yaml:"request_reset_timeout_sec"`
+		ResponseCollectorCount uint `yaml:"response_collector_count"`
+		MaxCountInOneRequest uint `yaml:"max_count_in_one_request"`
 	} `yaml:"system"`
 	Snmp struct {
 		Timeout int `yaml:"timeout"`
@@ -114,10 +113,9 @@ func main() {
 		LimitCountWorkers: Config.System.CountWorkers,
 		CacheRemoteResponseCacheTimeout: time.Duration(Config.Cache.RemoteExpirationSec) * time.Second,
 		CachePurge: time.Second * time.Duration(Config.Cache.Default.Purge),
-		CacheExpiration: time.Second * time.Duration(Config.Cache.Default.Expiration),
+		CacheExpiration: time.Second * time.Duration(Config.System.RequestResetTimeoutSec + 600),
 		LimitOneRequest: Config.System.MaxAsyncWorkersForRequest,
 		LimitOneDevice: Config.System.MaxAsyncRequestToHost,
-
 	})
 
 	//logPooler.SetLogLevel(logger.WarningLevel)
@@ -189,7 +187,7 @@ func main() {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
 			return
 		}
-		if len(data) > Config.System.MaxCountInOneRequest {
+		if uint(len(data)) > Config.System.MaxCountInOneRequest {
 			AbortWithStatus(c, http.StatusBadRequest, fmt.Sprintf("Reached max count devices in one request"))
 			return
 		}
@@ -210,7 +208,7 @@ func main() {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
 			return
 		}
-		if len(data) > Config.System.MaxCountInOneRequest {
+		if uint(len(data)) > Config.System.MaxCountInOneRequest {
 			AbortWithStatus(c, http.StatusBadRequest, fmt.Sprintf("Reached max count devices in one request"))
 			return
 		}
@@ -232,7 +230,7 @@ func main() {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
 			return
 		}
-		if len(data) > Config.System.MaxCountInOneRequest {
+		if uint(len(data)) > Config.System.MaxCountInOneRequest {
 			AbortWithStatus(c, http.StatusBadRequest, fmt.Sprintf("Reached max count devices in one request"))
 			return
 		}
@@ -254,7 +252,7 @@ func main() {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
 			return
 		}
-		if len(data) > Config.System.MaxCountInOneRequest {
+		if uint(len(data)) > Config.System.MaxCountInOneRequest {
 			AbortWithStatus(c, http.StatusBadRequest, fmt.Sprintf("Reached max count devices in one request"))
 			return
 		}
