@@ -24,7 +24,7 @@ func (s *Snmp) Get(oid string) (error, []SnmpResp) {
 	return  nil, resp
 }
 func (s *Snmp) Walk(oid string) (error, []SnmpResp) {
-	res, err := s.GoSnmp.WalkAll( oid )
+	res, err := s.GoSnmp.WalkAll(oid)
 	if err != nil && !strings.Contains(err.Error(), "timeout") {
 		return   s.Get(oid)
 	} else if err != nil {

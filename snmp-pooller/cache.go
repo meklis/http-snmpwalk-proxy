@@ -79,7 +79,6 @@ func (w *Worker) addCountFromRequest(requestId string) int {
 func (w *Worker) deleteCountFromRequest(requestId string) int {
 	count, exist := w.limitCountForRequest.Get(requestId)
 	if exist {
-
 		c:=count.(int)
 		c--
 		if c <= 0 {
@@ -110,18 +109,22 @@ func (w *Worker) getCountFromRequest(requestId string) int {
 
 
 //Collected request-response data with key request UUID
+//@TODO Has problem add response to collector when count of collector > 1
 func (w *Worker) addRequestData(requestId string, poolItem Pooller) int {
 	data, exist := w.requestCollector.Get(requestId)
 	if !exist {
+		w.Logger.DebugF("Create response collector for requestId %v",requestId)
 		poollers := make([]Pooller, 0)
 		poollers = append(poollers, poolItem)
-		w.requestCollector.Set(requestId, poollers, time.Duration(w.Config.LimitRequestResetTimeout + 60) * time.Second)
+		w.Logger.DebugF("Add response from device %v with requestId %v",poolItem.RequestBody.Ip, requestId)
+		w.requestCollector.Set(requestId, poollers, time.Duration(w.Config.LimitRequestResetTimeout + 600) * time.Second)
 		return 1
 	} else {
 		poollers := data.([]Pooller)
 		poollers = append(poollers, poolItem)
-		if err := w.requestCollector.Replace(requestId, poollers, time.Duration(w.Config.LimitRequestResetTimeout + 60) * time.Second); err != nil {
-			w.Logger.WarningF("(limitCountForSwitch) Err add collector data for request %v : %v",requestId, err.Error())
+		w.Logger.DebugF("Add response from device %v with requestId %v. Now collector len is: %v",poolItem.RequestBody.Ip, requestId, len(poollers))
+		if err := w.requestCollector.Replace(requestId, poollers, time.Duration(w.Config.LimitRequestResetTimeout + 600) * time.Second); err != nil {
+			w.Logger.WarningF("(addRequestData) Err add collector data for request %v : %v",requestId, err.Error())
 		}
 		return  len(poollers)
 	}

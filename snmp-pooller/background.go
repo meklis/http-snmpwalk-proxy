@@ -82,10 +82,10 @@ func backgroundWorker(w *Worker, numWorker int) {
 func workerResponseCollector(w *Worker, numWorker int) {
 	for {
 		response :=<- w.responseQueue
-		w.Logger.DebugF("New response in collector for requestId: %v ",response.UUid)
+		w.Logger.DebugF("New response in collector with ip %v and requestId: %v",response.RequestBody.Ip, response.UUid)
 		w.deleteCountFromRequest(response.UUid)
 		w.deleteRequestForSwitch(response.RequestBody.Ip)
 		w.addRequestData(response.UUid, response)
-		w.Logger.DebugF("Sended response to RequestData with id: %v ",response.UUid)
+		w.Logger.DebugF("Sended response to RequestData with ip %v and requestId: %v ",response.RequestBody.Ip,response.UUid)
 	}
 }

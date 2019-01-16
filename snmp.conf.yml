@@ -15,7 +15,7 @@
 #
 
 handler:
-   prefix: /v1/snmp/
+   prefix: /
    listen: 0.0.0.0:83
 
 #Caching results from store
@@ -37,7 +37,7 @@ system:
 #Количество обработчиков ответов с опросников
   response_collector_count: 10
 #Сброс опроса при таймайте свыше
-  request_reset_timeout_sec: 180
+  request_reset_timeout_sec: 30
 #Ограничение на максимальное количество запросов(свитч-оид) в одном запросе
   max_count_in_one_request: 1000
 

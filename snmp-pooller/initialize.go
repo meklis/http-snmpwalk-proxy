@@ -2,8 +2,8 @@ package pooller
 
 import (
 	"time"
-	"github.com/patrickmn/go-cache"
 	"github.com/satori/go.uuid"
+	"github.com/patrickmn/go-cache"
 	"../logger"
 	"fmt"
 	"os"
@@ -36,10 +36,12 @@ func New(config InitWorkerConfiguration) *Worker {
 	worker.limitCountForRequest = cache.New(time.Second * 900, config.CachePurge)
 	worker.requestQueue = make(chan Pooller, config.LimitCountWorkers)
 	worker.responseQueue = make(chan Pooller, config.LimitResponseCollectorCount)
-	for i := 0; i <= config.LimitCountWorkers; i++ {
+
+
+	for i := 0; i < config.LimitCountWorkers; i++ {
 		go backgroundWorker(worker, i)
 	}
-	for i := 0; i <= config.LimitCountWorkers; i++ {
+	for i := 0; i < config.LimitCountWorkers; i++ {
 		go workerResponseCollector(worker, i)
 	}
 	if worker.Logger == nil {

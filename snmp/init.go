@@ -67,7 +67,15 @@ func init() {
 func Connect(conf InitStruct) (error, *Snmp) {
 	resp := new(Snmp)
 	resp.init = &conf
-	snmp:=gosnmp.Default
+	snmp:= gosnmp.GoSNMP {
+		Port:               161,
+		Community:          "public",
+		Version:            gosnmp.SnmpVersion(conf.Version),
+		Timeout:            time.Duration(conf.TimeoutSec) * time.Second,
+		Retries:            conf.Repeats,
+		ExponentialTimeout: false,
+		MaxOids:            120,
+	}
 	snmp.Version = gosnmp.SnmpVersion(conf.Version)
 	snmp.Timeout = conf.TimeoutSec
 	snmp.Retries = conf.Repeats
@@ -78,7 +86,7 @@ func Connect(conf InitStruct) (error, *Snmp) {
 	if err := snmp.Connect(); err != nil {
 		return  err, nil
 	}
-	resp.GoSnmp = snmp
+	resp.GoSnmp = &snmp
 	return nil,resp
 }
 func (c *Snmp) Close() {

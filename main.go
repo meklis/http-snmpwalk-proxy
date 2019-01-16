@@ -18,6 +18,8 @@ import (
 	"fmt"
 )
 
+const VERSION  = "1.0.7"
+
 type Configuration struct{
 	Handler struct{
 		Listen string 	`yaml:"listen"`
@@ -62,7 +64,6 @@ func init()  {
 	flag.Parse()
 }
 
-//@TODO Realize set logger parameters from config
 func main() {
 	PrintLogo()
 	// Load configuration
@@ -77,6 +78,11 @@ func main() {
 		}
 		lg, _ = logger.New("pooler", color, os.Stdout)
 		lg.SetLogLevel(logger.LogLevel(Config.Logger.Console.LogLevel))
+		if Config.Logger.Console.LogLevel < 5 {
+			lg.SetFormat("#%{id} %{time} > %{level} %{message}")
+		} else {
+			lg.SetFormat("#%{id} %{time} (%{filename}:%{line}) > %{level} %{message}")
+		}
 	} else {
 		lg, _ = logger.New("no_log",0, os.DevNull)
 	}
@@ -139,6 +145,9 @@ func main() {
 		}
 		P := c.MustGet("POOLLER").(*pooller.Worker)
 		c.JSON(200, P.Walk(request))
+	})
+	r.GET("/", func(c *gin.Context) {
+		c.HTML(200, "", "<h1>HelpProvider</h1><br><h3>SnmpPooller</h3>")
 	})
 
 	r.GET(Config.Handler.Prefix + "get_status", func(c *gin.Context) {
@@ -329,15 +338,14 @@ func formatGetRequest(c *gin.Context) ([]pooller.Request) {
 
 
 func PrintLogo() {
-	fmt.Print(` 
+	fmt.Printf(` 
  _     _         _          ______                        _      _               
 | |   | |       | |        (_____ \                      (_)    | |              
 | |___| | _____ | |  ____   _____) )  ____   ___   _   _  _   __| | _____   ____ 
 |  ___  || ___ || | |  _ \ |  ____/  / ___) / _ \ | | | || | / _  || ___ | / ___)
 | |   | || ____|| | | |_| || |      | |    | |_| | \ V / | |( (_| || ____|| |    
 |_|   |_||_____) \_)|  __/ |_|      |_|     \___/   \_/  |_| \____||_____)|_|    
-                    |_|                                                          
-
+                    |_|
   ______                   ______            _ _              
  / _____)                 (_____ \          | | |             
 ( (____  ____  ____  ____  _____) )__   ___ | | | _____  ____ 
@@ -345,6 +353,6 @@ func PrintLogo() {
  _____) ) | | | | | | |_| | |   | |_| | |_| | | || ____| |    
 (______/|_| |_|_|_|_|  __/|_|    \___/ \___/ \_)_)_____)_|    
                     |_|                                                                       
-ver 1.0
-`)
+ver %v
+`, VERSION)
 }
