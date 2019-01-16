@@ -1,1 +1,5 @@
-[Logo]: https://i.ibb.co/BLPZ0Y1/snmp-pooler.png
+[Logo]: docs/img/snmp_pooler.png
+
+_current version: v1.0.8_
+
+
