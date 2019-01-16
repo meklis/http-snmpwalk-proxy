@@ -4,6 +4,9 @@ import (
 	"time"
 	"fmt"
 )
+//TODO: Realize new cache over channels
+//Current cache have concurency problem and has slow mutex locking
+
 
 //Switch counter managment
 func (w *Worker) getCountRequestForSwitch(swIp string) int {
