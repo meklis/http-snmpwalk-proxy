@@ -36,6 +36,7 @@ type Configuration struct{
 		CountWorkers int `yaml:"count_workers"`
 		RequestResetTimeoutSec int `yaml:"request_reset_timeout_sec"`
 		ResponseCollectorCount int `yaml:"response_collector_count"`
+		MaxCountInOneRequest int `yaml:"max_count_in_one_request"`
 	} `yaml:"system"`
 	Snmp struct {
 		Timeout int `yaml:"timeout"`
@@ -63,12 +64,22 @@ func init()  {
 
 //@TODO Realize set logger parameters from config
 func main() {
+	PrintLogo()
 	// Load configuration
 	if err := LoadConfig(); err != nil {
 		log.Panicln("ERROR LOADING CONFIGURATION FILE:", err.Error())
 	}
-	lg, _ = logger.New("pooler", 1, os.Stdout)
 
+	if Config.Logger.Console.Enabled {
+		color := 0
+		if Config.Logger.Console.EnabledColor {
+			color = 1
+		}
+		lg, _ = logger.New("pooler", color, os.Stdout)
+		lg.SetLogLevel(logger.LogLevel(Config.Logger.Console.LogLevel))
+	} else {
+		lg, _ = logger.New("no_log",0, os.DevNull)
+	}
 	gin.SetMode("release")
 
 	//Define gin
@@ -77,7 +88,7 @@ func main() {
 	r := gin.Default()
 	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 
-		lg.Debug(fmt.Sprintf("HTTP | %3d | %13v | %15s | %-7s  %s   %s",
+		lg.Notice(fmt.Sprintf("HTTP | %3d | %13v | %15s | %-7s  %s   %s",
 			param.StatusCode,
 			param.Latency,
 			param.ClientIP,
@@ -120,7 +131,7 @@ func main() {
 		}
 	}()
 
-	r.GET("/walk", func(c *gin.Context) {
+	r.GET(Config.Handler.Prefix + "walk", func(c *gin.Context) {
 		request := formatGetRequest(c)
 		if err := validator.GetValidator("snmp_get").Struct(&request[0]); err != nil {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
@@ -130,12 +141,12 @@ func main() {
 		c.JSON(200, P.Walk(request))
 	})
 
-	r.GET("/get_status", func(c *gin.Context) {
+	r.GET(Config.Handler.Prefix + "get_status", func(c *gin.Context) {
 		P := c.MustGet("POOLLER").(*pooller.Worker)
 		c.JSON(200, P.GetStatus())
 	})
 
-	r.GET("/bulk_walk",func(c *gin.Context) {
+	r.GET(Config.Handler.Prefix + "bulk_walk",func(c *gin.Context) {
 		request := formatGetRequest(c)
 		if err := validator.GetValidator("snmp_get").Struct(&request[0]); err != nil {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
@@ -144,7 +155,7 @@ func main() {
 		P := c.MustGet("POOLLER").(*pooller.Worker)
 		c.JSON(200, P.Walk(request))
 	})
-	r.GET("/get",func(c *gin.Context) {
+	r.GET(Config.Handler.Prefix + "get",func(c *gin.Context) {
 		request := formatGetRequest(c)
 		if err := validator.GetValidator("snmp_get").Struct(&request[0]); err != nil {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
@@ -153,7 +164,7 @@ func main() {
 		P := c.MustGet("POOLLER").(*pooller.Worker)
 		c.JSON(200, P.Walk(request))
 	})
-	r.GET("/set", func(c *gin.Context) {
+	r.GET(Config.Handler.Prefix + "set", func(c *gin.Context) {
 		request := formatGetRequest(c)
 		if err := validator.GetValidator("snmp_set").Struct(&request[0]); err != nil {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
@@ -163,11 +174,14 @@ func main() {
 		c.JSON(200, P.Walk(request))
 	})
 
-	r.POST("/get", func(c *gin.Context) {
+	r.POST(Config.Handler.Prefix + "get", func(c *gin.Context) {
 		var data []pooller.Request
 		if err := c.BindJSON(&data); err != nil {
-			log.Printf("Create unmarshall json %v", err.Error())
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		if len(data) > Config.System.MaxCountInOneRequest {
+			AbortWithStatus(c, http.StatusBadRequest, fmt.Sprintf("Reached max count devices in one request"))
 			return
 		}
 		for _, d := range  data {
@@ -180,11 +194,15 @@ func main() {
 		P := c.MustGet("POOLLER").(*pooller.Worker)
 		c.JSON(200, P.Get(data))
 	})
-	r.POST("/walk", func(c *gin.Context) {
+	r.POST(Config.Handler.Prefix + "walk", func(c *gin.Context) {
 		var data []pooller.Request
 		if err := c.BindJSON(&data); err != nil {
 			log.Printf("Create unmarshall json %v", err.Error())
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		if len(data) > Config.System.MaxCountInOneRequest {
+			AbortWithStatus(c, http.StatusBadRequest, fmt.Sprintf("Reached max count devices in one request"))
 			return
 		}
 		for _, d := range  data {
@@ -198,11 +216,15 @@ func main() {
 		c.JSON(200, P.Walk(data))
 	})
 
-	r.POST("/bulk_walk", func(c *gin.Context) {
+	r.POST(Config.Handler.Prefix + "bulk_walk", func(c *gin.Context) {
 		var data []pooller.Request
 		if err := c.BindJSON(&data); err != nil {
 			log.Printf("Create unmarshall json %v", err.Error())
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		if len(data) > Config.System.MaxCountInOneRequest {
+			AbortWithStatus(c, http.StatusBadRequest, fmt.Sprintf("Reached max count devices in one request"))
 			return
 		}
 		for _, d := range  data {
@@ -216,11 +238,15 @@ func main() {
 		c.JSON(200, P.BulkWalk(data))
 	})
 
-	r.POST("/set", func(c *gin.Context) {
+	r.POST(Config.Handler.Prefix + "set", func(c *gin.Context) {
 		var data []pooller.Request
 		if err := c.BindJSON(&data); err != nil {
 			log.Printf("Create unmarshall json %v", err.Error())
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		if len(data) > Config.System.MaxCountInOneRequest {
+			AbortWithStatus(c, http.StatusBadRequest, fmt.Sprintf("Reached max count devices in one request"))
 			return
 		}
 		for _, d := range  data {
@@ -299,4 +325,26 @@ func formatGetRequest(c *gin.Context) ([]pooller.Request) {
 		Value: Value,
 	}
 	return pool
+}
+
+
+func PrintLogo() {
+	fmt.Print(` 
+ _     _         _          ______                        _      _               
+| |   | |       | |        (_____ \                      (_)    | |              
+| |___| | _____ | |  ____   _____) )  ____   ___   _   _  _   __| | _____   ____ 
+|  ___  || ___ || | |  _ \ |  ____/  / ___) / _ \ | | | || | / _  || ___ | / ___)
+| |   | || ____|| | | |_| || |      | |    | |_| | \ V / | |( (_| || ____|| |    
+|_|   |_||_____) \_)|  __/ |_|      |_|     \___/   \_/  |_| \____||_____)|_|    
+                    |_|                                                          
+
+  ______                   ______            _ _              
+ / _____)                 (_____ \          | | |             
+( (____  ____  ____  ____  _____) )__   ___ | | | _____  ____ 
+ \____ \|  _ \|    \|  _ \|  ____/ _ \ / _ \| | || ___ |/ ___)
+ _____) ) | | | | | | |_| | |   | |_| | |_| | | || ____| |    
+(______/|_| |_|_|_|_|  __/|_|    \___/ \___/ \_)_)_____)_|    
+                    |_|                                                                       
+ver 1.0
+`)
 }
