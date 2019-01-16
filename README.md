@@ -1,4 +1,4 @@
-[Logo]: docs/img/snmp_pooler.png
+![logo](docs/img/snmp_pooler.png)
 
 _Текущая версия: v1.0.8_
 
