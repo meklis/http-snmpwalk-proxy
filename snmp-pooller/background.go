@@ -1,7 +1,7 @@
 package pooller
 
 import (
-	"helpprovider_snmp/snmp"
+	"bitbucket.org/meklis/helpprovider_snmp/snmp"
 	"time"
 )
 
@@ -82,7 +82,7 @@ func backgroundWorker(w *Worker, numWorker uint) {
 func workerResponseCollector(w *Worker, numWorker uint) {
 	for {
 		response :=<- w.responseQueue
-		w.Logger.DebugF("New response in collector with ip %v and requestId: %v",response.RequestBody.Ip, response.UUid)
+		w.Logger.DebugF("New response in collector number %v with ip %v and requestId: %v",numWorker, response.RequestBody.Ip, response.UUid)
 		w.deleteCountFromRequest(response.UUid)
 		w.deleteRequestForSwitch(response.RequestBody.Ip)
 		w.addRequestData(response.UUid, response)

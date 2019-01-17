@@ -3,8 +3,8 @@ package pooller
 import (
 	"time"
 	"github.com/meklis/go-cache"
-	"helpprovider_snmp/snmp"
-	"helpprovider_snmp/logger"
+	"bitbucket.org/meklis/helpprovider_snmp/snmp"
+	"bitbucket.org/meklis/helpprovider_snmp/logger"
 )
 
 type Pooller struct {

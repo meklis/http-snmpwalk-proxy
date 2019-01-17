@@ -4,7 +4,7 @@ import (
 	"time"
 	"github.com/satori/go.uuid"
 	"github.com/meklis/go-cache"
-	"helpprovider_snmp/logger"
+	"bitbucket.org/meklis/helpprovider_snmp/logger"
 	"fmt"
 	"os"
 )
@@ -57,8 +57,8 @@ func (w *Worker) Get(requests []Request) []Response {
 func (w *Worker) addToPool( requests []Request, requestType RequestType) []Response {
 	//Generate requestId
 	requestUUid := ""
-	if  uuid, err :=  uuid.NewV4(); err == nil {
-		requestUUid = uuid.String()
+	if  uu, err :=  uuid.NewV4(); err == nil {
+		requestUUid = uu.String()
 	}
 	w.Logger.DebugF("Add new request to pool, length request: %v, with generated uuid: %v", len(requests), requestUUid)
 
