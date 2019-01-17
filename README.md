@@ -15,7 +15,18 @@ _Текущая версия: v1.0.8_
 * BSD
 * Darvin (MAC OS)
 
-# Использование    
+# Использование  
+
+### Список методов   
+* GET /get
+* GET /walk
+* GET /bulk_walk
+* GET /set
+* POST /get
+* POST /walk
+* POST /bulk_walk
+* POST /set
+  
 
 ###Возможные параметры в запросе:  
    **ip** - IP адрес оборудования   
