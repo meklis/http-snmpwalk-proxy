@@ -13,7 +13,7 @@ _Текущая версия: v1.0.8_
 * Windows
 * Linux
 * BSD
-* Darvin (MAC OS)
+* Darwin (MAC OS)
 
 # Использование  
 
