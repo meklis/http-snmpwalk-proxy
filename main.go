@@ -287,8 +287,6 @@ func AbortWithStatus(c *gin.Context, code int, msg string) {
 	c.String(code, msg)
 }
 
-
-
 func formatGetRequest(c *gin.Context) ([]pooller.Request) {
 	params := c.Request.URL.Query()
 	var Ip, Community, Oid, Type, Value  string

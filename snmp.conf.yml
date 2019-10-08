@@ -15,24 +15,24 @@
 #
 
 handler:
-   prefix: /
-   listen: 0.0.0.0:83
+   prefix: /api/
+   listen: 0.0.0.0:8080
 
 #Caching results from store
 cache:
    defaults:
       purge_sec: 10
 #Кеширование ответов с оборудования в секундах
-   remote_expiration_sec: 30
+   remote_expiration_sec: 1800
 
 
 system:
 #Ограничение на максимальное количество одновременных запросов на один хост
-  max_async_workers_to_host: 2
+  max_async_workers_to_host: 3
 #Ограничение на максимальное количество одновременных snmp запросов   по одному http запросу
   max_async_workers_for_request: 5
 #Количество опросников
-  count_workers: 10
+  count_workers: 100
 #Количество обработчиков ответов с опросников
   response_collector_count: 1
 #Сброс опроса при таймайте свыше

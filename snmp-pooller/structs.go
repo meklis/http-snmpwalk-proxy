@@ -27,7 +27,7 @@ type Request struct {
 	Repeats int `json:"repeats"`
 	Timeout int `json:"timeout"`
 	Type string `json:"type" snmp_set:"required,exclude_specials"`
-	Value string `json:"value" snmp_set:"required,exclude_specials"`
+	Value interface{} `json:"value" snmp_set:"required,exclude_specials"`
 	UseCache bool `json:"use_cache"`
 }
 
