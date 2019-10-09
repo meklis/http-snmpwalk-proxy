@@ -178,7 +178,7 @@ func main() {
 			return
 		}
 		P := c.MustGet("POOLLER").(*pooller.Worker)
-		c.JSON(200, P.Walk(request))
+		c.JSON(200, P.Set(request))
 	})
 
 	r.POST(Config.Handler.Prefix + "get", func(c *gin.Context) {

@@ -171,5 +171,5 @@ func (w *Worker) BulkWalk(r []Request) []Response {
 	return w.addToPool(r, requestBulkWalk)
 }
 func (w *Worker) Set(r []Request)  []Response {
-	return w.addToPool(r, requestGet)
+	return w.addToPool(r, requestSet)
 }
