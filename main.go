@@ -1,64 +1,63 @@
 package main
 
-
 import (
-	"flag"
-	"io/ioutil"
-	"gopkg.in/yaml.v2"
-	"github.com/gin-gonic/gin"
-	"log"
-	"bitbucket.org/meklis/helpprovider_snmp/snmp-pooller"
-	"time"
 	"encoding/json"
-	"net/http"
-	"bitbucket.org/meklis/helpprovider_snmp/validator"
-	"strconv"
-	"bitbucket.org/meklis/helpprovider_snmp/logger"
-	"os"
+	"flag"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/meklis/http-snmpwalk-proxy/logger"
+	"github.com/meklis/http-snmpwalk-proxy/snmp-pooller"
+	"github.com/meklis/http-snmpwalk-proxy/validator"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
 )
 
-const VERSION  = "1.0.8"
+const VERSION = "1.0.8"
 
-type Configuration struct{
-	Handler struct{
-		Listen string 	`yaml:"listen"`
-		Prefix string 	`yaml:"prefix"`
+type Configuration struct {
+	Handler struct {
+		Listen string `yaml:"listen"`
+		Prefix string `yaml:"prefix"`
 	} `yaml:"handler"`
-	Cache struct{
-		Default struct{
+	Cache struct {
+		Default struct {
 			Purge int `yaml:"purge"`
 		} `yaml:"defaults"`
 		RemoteExpirationSec int `yaml:"remote_expiration_sec"`
 	} `yaml:"cache"`
-	System struct{
-		MaxAsyncRequestToHost uint `yaml:"max_async_workers_to_host"`
+	System struct {
+		MaxAsyncRequestToHost     uint `yaml:"max_async_workers_to_host"`
 		MaxAsyncWorkersForRequest uint `yaml:"max_async_workers_for_request"`
-		CountWorkers uint `yaml:"count_workers"`
-		RequestResetTimeoutSec uint `yaml:"request_reset_timeout_sec"`
-		ResponseCollectorCount uint `yaml:"response_collector_count"`
-		MaxCountInOneRequest uint `yaml:"max_count_in_one_request"`
+		CountWorkers              uint `yaml:"count_workers"`
+		RequestResetTimeoutSec    uint `yaml:"request_reset_timeout_sec"`
+		ResponseCollectorCount    uint `yaml:"response_collector_count"`
+		MaxCountInOneRequest      uint `yaml:"max_count_in_one_request"`
 	} `yaml:"system"`
 	Snmp struct {
 		Timeout int `yaml:"timeout"`
 		Repeats int `yaml:"repeats"`
 	} `yaml:"snmp"`
 	Logger struct {
-		Console struct  {
-			Enabled bool  `yaml:"enabled"`
+		Console struct {
+			Enabled      bool `yaml:"enabled"`
 			EnabledColor bool `yaml:"enable_color"`
-			LogLevel int `yaml:"log_level"`
- 		} `yaml:"console"`
+			LogLevel     int  `yaml:"log_level"`
+		} `yaml:"console"`
 	} `yaml:"logger"`
 }
 
 var (
-	Config Configuration
+	Config     Configuration
 	pathConfig string
-	lg *logger.Logger
+	lg         *logger.Logger
 )
 
-func init()  {
+func init() {
 	flag.StringVar(&pathConfig, "c", "snmp.conf.yml", "Configuration file for proxy-auth module")
 	flag.Parse()
 }
@@ -83,13 +82,13 @@ func main() {
 			lg.SetFormat("#%{id} %{time} (%{filename}:%{line}) > %{level} %{message}")
 		}
 	} else {
-		lg, _ = logger.New("no_log",0, os.DevNull)
+		lg, _ = logger.New("no_log", 0, os.DevNull)
 	}
 	gin.SetMode("release")
 
 	//Define gin
-	gin.DefaultErrorWriter  = ioutil.Discard
-	gin.DefaultWriter  = ioutil.Discard
+	gin.DefaultErrorWriter = ioutil.Discard
+	gin.DefaultWriter = ioutil.Discard
 	r := gin.Default()
 	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 
@@ -106,16 +105,16 @@ func main() {
 
 	//Initial snmp pooller
 	pool := pooller.New(pooller.InitWorkerConfiguration{
-		DefaultSnmpTimeout: Config.Snmp.Timeout,
-		DefaultSnmpRepeats: Config.Snmp.Repeats,
-		LimitRequestResetTimeout: Config.System.RequestResetTimeoutSec,
-		LimitResponseCollectorCount: Config.System.ResponseCollectorCount,
-		LimitCountWorkers: Config.System.CountWorkers,
+		DefaultSnmpTimeout:              Config.Snmp.Timeout,
+		DefaultSnmpRepeats:              Config.Snmp.Repeats,
+		LimitRequestResetTimeout:        Config.System.RequestResetTimeoutSec,
+		LimitResponseCollectorCount:     Config.System.ResponseCollectorCount,
+		LimitCountWorkers:               Config.System.CountWorkers,
 		CacheRemoteResponseCacheTimeout: time.Duration(Config.Cache.RemoteExpirationSec) * time.Second,
-		CachePurge: time.Second * time.Duration(Config.Cache.Default.Purge),
-		CacheExpiration: time.Second * time.Duration(Config.System.RequestResetTimeoutSec + 600),
-		LimitOneRequest: Config.System.MaxAsyncWorkersForRequest,
-		LimitOneDevice: Config.System.MaxAsyncRequestToHost,
+		CachePurge:                      time.Second * time.Duration(Config.Cache.Default.Purge),
+		CacheExpiration:                 time.Second * time.Duration(Config.System.RequestResetTimeoutSec+600),
+		LimitOneRequest:                 Config.System.MaxAsyncWorkersForRequest,
+		LimitOneDevice:                  Config.System.MaxAsyncRequestToHost,
 	})
 
 	//logPooler.SetLogLevel(logger.WarningLevel)
@@ -130,12 +129,12 @@ func main() {
 		for {
 			data := pool.GetStatus()
 			bytes, _ := json.Marshal(data)
-			lg.DebugF("STATUS: %v",string(bytes))
+			lg.DebugF("STATUS: %v", string(bytes))
 			time.Sleep(time.Second * 3)
 		}
 	}()
 
-	r.GET(Config.Handler.Prefix + "walk", func(c *gin.Context) {
+	r.GET(Config.Handler.Prefix+"walk", func(c *gin.Context) {
 		request := formatGetRequest(c)
 		if err := validator.GetValidator("snmp_get").Struct(&request[0]); err != nil {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
@@ -148,12 +147,12 @@ func main() {
 		c.HTML(200, "", "<h1>HelpProvider</h1><br><h3>SnmpPooller</h3>")
 	})
 
-	r.GET(Config.Handler.Prefix + "get_status", func(c *gin.Context) {
+	r.GET(Config.Handler.Prefix+"get_status", func(c *gin.Context) {
 		P := c.MustGet("POOLLER").(*pooller.Worker)
 		c.JSON(200, P.GetStatus())
 	})
 
-	r.GET(Config.Handler.Prefix + "bulk_walk",func(c *gin.Context) {
+	r.GET(Config.Handler.Prefix+"bulk_walk", func(c *gin.Context) {
 		request := formatGetRequest(c)
 		if err := validator.GetValidator("snmp_get").Struct(&request[0]); err != nil {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
@@ -162,7 +161,7 @@ func main() {
 		P := c.MustGet("POOLLER").(*pooller.Worker)
 		c.JSON(200, P.Walk(request))
 	})
-	r.GET(Config.Handler.Prefix + "get",func(c *gin.Context) {
+	r.GET(Config.Handler.Prefix+"get", func(c *gin.Context) {
 		request := formatGetRequest(c)
 		if err := validator.GetValidator("snmp_get").Struct(&request[0]); err != nil {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
@@ -171,7 +170,7 @@ func main() {
 		P := c.MustGet("POOLLER").(*pooller.Worker)
 		c.JSON(200, P.Walk(request))
 	})
-	r.GET(Config.Handler.Prefix + "set", func(c *gin.Context) {
+	r.GET(Config.Handler.Prefix+"set", func(c *gin.Context) {
 		request := formatGetRequest(c)
 		if err := validator.GetValidator("snmp_set").Struct(&request[0]); err != nil {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
@@ -181,7 +180,7 @@ func main() {
 		c.JSON(200, P.Set(request))
 	})
 
-	r.POST(Config.Handler.Prefix + "get", func(c *gin.Context) {
+	r.POST(Config.Handler.Prefix+"get", func(c *gin.Context) {
 		var data []pooller.Request
 		if err := c.BindJSON(&data); err != nil {
 			AbortWithStatus(c, http.StatusBadRequest, err.Error())
@@ -191,7 +190,7 @@ func main() {
 			AbortWithStatus(c, http.StatusBadRequest, fmt.Sprintf("Reached max count devices in one request"))
 			return
 		}
-		for _, d := range  data {
+		for _, d := range data {
 			if err := validator.GetValidator("snmp_get").Struct(&d); err != nil {
 				AbortWithStatus(c, http.StatusBadRequest, err.Error())
 				return
@@ -201,7 +200,7 @@ func main() {
 		P := c.MustGet("POOLLER").(*pooller.Worker)
 		c.JSON(200, P.Get(data))
 	})
-	r.POST(Config.Handler.Prefix + "walk", func(c *gin.Context) {
+	r.POST(Config.Handler.Prefix+"walk", func(c *gin.Context) {
 		var data []pooller.Request
 		if err := c.BindJSON(&data); err != nil {
 			log.Printf("Create unmarshall json %v", err.Error())
@@ -212,7 +211,7 @@ func main() {
 			AbortWithStatus(c, http.StatusBadRequest, fmt.Sprintf("Reached max count devices in one request"))
 			return
 		}
-		for _, d := range  data {
+		for _, d := range data {
 			if err := validator.GetValidator("snmp_get").Struct(&d); err != nil {
 				AbortWithStatus(c, http.StatusBadRequest, err.Error())
 				return
@@ -223,7 +222,7 @@ func main() {
 		c.JSON(200, P.Walk(data))
 	})
 
-	r.POST(Config.Handler.Prefix + "bulk_walk", func(c *gin.Context) {
+	r.POST(Config.Handler.Prefix+"bulk_walk", func(c *gin.Context) {
 		var data []pooller.Request
 		if err := c.BindJSON(&data); err != nil {
 			log.Printf("Create unmarshall json %v", err.Error())
@@ -234,7 +233,7 @@ func main() {
 			AbortWithStatus(c, http.StatusBadRequest, fmt.Sprintf("Reached max count devices in one request"))
 			return
 		}
-		for _, d := range  data {
+		for _, d := range data {
 			if err := validator.GetValidator("snmp_get").Struct(&d); err != nil {
 				AbortWithStatus(c, http.StatusBadRequest, err.Error())
 				return
@@ -245,7 +244,7 @@ func main() {
 		c.JSON(200, P.BulkWalk(data))
 	})
 
-	r.POST(Config.Handler.Prefix + "set", func(c *gin.Context) {
+	r.POST(Config.Handler.Prefix+"set", func(c *gin.Context) {
 		var data []pooller.Request
 		if err := c.BindJSON(&data); err != nil {
 			log.Printf("Create unmarshall json %v", err.Error())
@@ -256,7 +255,7 @@ func main() {
 			AbortWithStatus(c, http.StatusBadRequest, fmt.Sprintf("Reached max count devices in one request"))
 			return
 		}
-		for _, d := range  data {
+		for _, d := range data {
 			if err := validator.GetValidator("snmp_set").Struct(&d); err != nil {
 				AbortWithStatus(c, http.StatusBadRequest, err.Error())
 				return
@@ -273,13 +272,13 @@ func main() {
 func LoadConfig() error {
 	bytes, err := ioutil.ReadFile(pathConfig)
 	if err != nil {
-		return  err
+		return err
 	}
-	err  = yaml.Unmarshal(bytes, &Config)
+	err = yaml.Unmarshal(bytes, &Config)
 	if err != nil {
-		return  err
+		return err
 	}
-	return  nil
+	return nil
 }
 
 func AbortWithStatus(c *gin.Context, code int, msg string) {
@@ -287,9 +286,9 @@ func AbortWithStatus(c *gin.Context, code int, msg string) {
 	c.String(code, msg)
 }
 
-func formatGetRequest(c *gin.Context) ([]pooller.Request) {
+func formatGetRequest(c *gin.Context) []pooller.Request {
 	params := c.Request.URL.Query()
-	var Ip, Community, Oid, Type, Value  string
+	var Ip, Community, Oid, Type, Value string
 	var Repeats, Timeout int
 	var UseCache bool
 	if val, isset := params["ip"]; isset {
@@ -318,20 +317,19 @@ func formatGetRequest(c *gin.Context) ([]pooller.Request) {
 			UseCache = true
 		}
 	}
-	pool := make([]pooller.Request,1)
-	pool[0] =  pooller.Request{
-		Repeats: Repeats,
-		UseCache: UseCache,
-		Timeout: Timeout,
-		Type: Type,
-		Ip: Ip,
-		Oid: Oid,
+	pool := make([]pooller.Request, 1)
+	pool[0] = pooller.Request{
+		Repeats:   Repeats,
+		UseCache:  UseCache,
+		Timeout:   Timeout,
+		Type:      Type,
+		Ip:        Ip,
+		Oid:       Oid,
 		Community: Community,
-		Value: Value,
+		Value:     Value,
 	}
 	return pool
 }
-
 
 func PrintLogo() {
 	fmt.Printf(` 
