@@ -1,5 +1,4 @@
-![logo](docs/img/snmp_pooler.png)
-
+# HTTP SnmpWalkWrapper proxy server
 _Текущая версия: v1.1.0_
  
 
