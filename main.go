@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-const VERSION = "1.0.8"
+const VERSION = "1.0.16"
 
 type Configuration struct {
 	Handler struct {
@@ -68,7 +68,6 @@ func main() {
 	if err := LoadConfig(); err != nil {
 		log.Panicln("ERROR LOADING CONFIGURATION FILE:", err.Error())
 	}
-
 	if Config.Logger.Console.Enabled {
 		color := 0
 		if Config.Logger.Console.EnabledColor {
@@ -84,6 +83,8 @@ func main() {
 	} else {
 		lg, _ = logger.New("no_log", 0, os.DevNull)
 	}
+	lg.InfoF("Logger initialized...")
+	lg.InfoF("Start configure http server...")
 	gin.SetMode("release")
 
 	//Define gin
@@ -91,7 +92,6 @@ func main() {
 	gin.DefaultWriter = ioutil.Discard
 	r := gin.Default()
 	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
-
 		lg.Notice(fmt.Sprintf("HTTP | %3d | %13v | %15s | %-7s  %s   %s",
 			param.StatusCode,
 			param.Latency,
@@ -102,6 +102,7 @@ func main() {
 		))
 		return ""
 	}))
+	lg.InfoF("initialize pool workers...")
 
 	//Initial snmp pooller
 	pool := pooller.New(pooller.InitWorkerConfiguration{
@@ -120,6 +121,7 @@ func main() {
 	//logPooler.SetLogLevel(logger.WarningLevel)
 	pool.Logger = lg
 
+	lg.InfoF("Inject pool to http server...")
 	r.Use(func(c *gin.Context) {
 		c.Set("POOLLER", pool)
 		c.Next()
@@ -129,11 +131,12 @@ func main() {
 		for {
 			data := pool.GetStatus()
 			bytes, _ := json.Marshal(data)
-			lg.DebugF("STATUS: %v", string(bytes))
+			lg.InfoF("STATUS: %v", string(bytes))
 			time.Sleep(time.Second * 3)
 		}
 	}()
 
+	//Set routes
 	r.GET(Config.Handler.Prefix+"walk", func(c *gin.Context) {
 		request := formatGetRequest(c)
 		if err := validator.GetValidator("snmp_get").Struct(&request[0]); err != nil {
@@ -267,7 +270,10 @@ func main() {
 	})
 
 	//Server http server
-	r.Run(Config.Handler.Listen)
+	err := r.Run(Config.Handler.Listen)
+	if err != nil {
+		lg.CriticalF("problem start HTTP server: %v", err.Error())
+	}
 }
 func LoadConfig() error {
 	bytes, err := ioutil.ReadFile(pathConfig)

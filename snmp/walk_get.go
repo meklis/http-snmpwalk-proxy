@@ -4,61 +4,60 @@ import (
 	"fmt"
 )
 
-
 func (s *Snmp) Get(oid string) (error, []SnmpResp) {
 	res, err := s.GoSnmp.Get([]string{oid})
 	if err != nil {
-		return  err, nil
+		return err, nil
 	}
-	resp := make([]SnmpResp,0)
-	for _, r := range  res.Variables {
+	resp := make([]SnmpResp, 0)
+	for _, r := range res.Variables {
 		str := SnmpResp{
-			Value: convertValue(r.Type, r.Value),
+			Value:    convertValue(r.Type, r.Value),
 			HexValue: stringToBytes(fmt.Sprintf("%v", convertValue(r.Type, r.Value))),
-			Oid: r.Name,
+			Oid:      r.Name,
 		}
 		str.Type = getType(byte(r.Type))
 		resp = append(resp, str)
 	}
-	return  nil, resp
+	return nil, resp
 }
 func (s *Snmp) Walk(oid string) (error, []SnmpResp) {
 	res, err := s.GoSnmp.WalkAll(oid)
 	if err == nil && len(res) == 0 {
-		return   s.Get(oid)
+		return s.Get(oid)
 	} else if err != nil {
 		return err, nil
 	}
-	resp := make([]SnmpResp,0)
+	resp := make([]SnmpResp, 0)
 
-	for _, r := range  res {
+	for _, r := range res {
 		str := SnmpResp{
-			Value: convertValue(r.Type, r.Value),
+			Value:    convertValue(r.Type, r.Value),
 			HexValue: stringToBytes(fmt.Sprintf("%v", convertValue(r.Type, r.Value))),
-			Oid: r.Name,
+			Oid:      r.Name,
 		}
 		str.Type = getType(byte(r.Type))
 		resp = append(resp, str)
 	}
-	return  nil, resp
+	return nil, resp
 }
 func (s *Snmp) WalkBulk(oid string) (error, []SnmpResp) {
-	res, err := s.GoSnmp.BulkWalkAll( oid )
+	res, err := s.GoSnmp.BulkWalkAll(oid)
 	if err == nil && len(res) == 0 {
-		return   s.Get(oid)
+		return s.Get(oid)
 	} else if err != nil {
 		return err, nil
 	}
-	resp := make([]SnmpResp,0)
+	resp := make([]SnmpResp, 0)
 
-	for _, r := range  res {
+	for _, r := range res {
 		str := SnmpResp{
-			Value: convertValue(r.Type, r.Value),
+			Value:    convertValue(r.Type, r.Value),
 			HexValue: stringToBytes(fmt.Sprintf("%v", convertValue(r.Type, r.Value))),
-			Oid: r.Name,
+			Oid:      r.Name,
 		}
 		str.Type = getType(byte(r.Type))
 		resp = append(resp, str)
 	}
-	return  nil, resp
+	return nil, resp
 }

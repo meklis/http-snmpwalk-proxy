@@ -9,21 +9,6 @@ import (
 	"time"
 )
 
-func GetDefaultConfiguration() InitWorkerConfiguration {
-	return InitWorkerConfiguration{
-		CacheExpiration:                 time.Second * 60,
-		CachePurge:                      time.Second * 3,
-		CacheRemoteResponseCacheTimeout: time.Second * 120,
-		DefaultSnmpRepeats:              5,
-		DefaultSnmpTimeout:              3,
-		LimitCountWorkers:               100,
-		LimitOneDevice:                  3,
-		LimitOneRequest:                 50,
-		LimitRequestResetTimeout:        300,
-		LimitResponseCollectorCount:     10,
-	}
-}
-
 func New(config InitWorkerConfiguration) *Worker {
 	worker := new(Worker)
 
@@ -38,7 +23,7 @@ func New(config InitWorkerConfiguration) *Worker {
 	for i := uint(0); i < config.LimitCountWorkers; i++ {
 		go backgroundWorker(worker, i)
 	}
-	for i := uint(0); i < config.LimitCountWorkers; i++ {
+	for i := uint(0); i < config.LimitResponseCollectorCount; i++ {
 		go workerResponseCollector(worker, i)
 	}
 	if worker.Logger == nil {
@@ -53,10 +38,7 @@ func (w *Worker) Get(requests []Request) []Response {
 
 func (w *Worker) addToPool(requests []Request, requestType RequestType) []Response {
 	//Generate requestId
-	requestUUid := ""
-	if uu, err := uuid.NewV4(); err == nil {
-		requestUUid = uu.String()
-	}
+	requestUUid := uuid.NewV4().String()
 	w.Logger.DebugF("Add new request to pool, length request: %v, with generated uuid: %v", len(requests), requestUUid)
 
 	//Rebuild request for work with as map
@@ -86,16 +68,18 @@ func (w *Worker) addToPool(requests []Request, requestType RequestType) []Respon
 	//Sending requests to pool
 	for {
 		if len(requestMapped) == 0 {
-			w.Logger.DebugF("Requests are no longer in the buffer, waiting for an answer for uuid %v", requestUUid)
+			w.Logger.DebugF("All oids sended to pool for request with uuid %v", requestUUid)
 			break
 		}
 		for keyName, poolItem := range requestMapped {
 			if count := w.getCountFromRequest(poolItem.UUid); count >= w.Config.LimitOneRequest {
 				//w.Logger.WarningF("Reached limit of async workers in request for uuid %v (count requests: %v, limit: %v)", requestUUid, count, w.Config.LimitOneRequest)
+				time.Sleep(time.Millisecond * 5)
 				continue
 			}
 			if count := w.getCountRequestForSwitch(poolItem.RequestBody.Ip); count >= w.Config.LimitOneDevice {
 				//w.Logger.WarningF("Reached limit of async workers for switch %v", poolItem.RequestBody.Ip)
+				time.Sleep(time.Millisecond * 5)
 				continue
 			}
 			w.addCountFromRequest(poolItem.UUid)

@@ -1,8 +1,8 @@
 package snmp
 
 import (
-	"github.com/soniah/gosnmp"
 	"fmt"
+	"github.com/gosnmp/gosnmp"
 	"strings"
 	"time"
 )
@@ -17,22 +17,22 @@ const (
 )
 
 var (
-	types =  make(map[byte]string)
+	types        = make(map[byte]string)
 	typesInverse = make(map[string]byte)
 )
 
 type InitStruct struct {
-	Version SnmpVersion
+	Version    SnmpVersion
 	TimeoutSec time.Duration
-	Repeats int
-	Ip string
-	Community string
+	Repeats    int
+	Ip         string
+	Community  string
 }
 
 type Snmp struct {
-	init *InitStruct
+	init   *InitStruct
 	GoSnmp *gosnmp.GoSNMP
-	Err error
+	Err    error
 }
 
 func init() {
@@ -67,7 +67,7 @@ func init() {
 func Connect(conf InitStruct) (error, *Snmp) {
 	resp := new(Snmp)
 	resp.init = &conf
-	snmp:= gosnmp.GoSNMP {
+	snmp := gosnmp.GoSNMP{
 		Port:               161,
 		Community:          "public",
 		Version:            gosnmp.SnmpVersion(conf.Version),
@@ -80,29 +80,28 @@ func Connect(conf InitStruct) (error, *Snmp) {
 	snmp.Timeout = conf.TimeoutSec
 	snmp.Retries = conf.Repeats
 	snmp.Community = conf.Community
-	snmp.MaxRepetitions = uint8(conf.Repeats)
+	snmp.MaxRepetitions = uint32(conf.Repeats)
 	snmp.Target = conf.Ip
 	snmp.ExponentialTimeout = false
 	if err := snmp.Connect(); err != nil {
-		return  err, nil
+		return err, nil
 	}
 	resp.GoSnmp = &snmp
-	return nil,resp
+	return nil, resp
 }
 func (c *Snmp) Close() {
 	c.GoSnmp.Conn.Close()
 	c = nil
 }
 
-
-
-
-func convertValue(tp gosnmp.Asn1BER, val interface{}) (resp interface{}){
+func convertValue(tp gosnmp.Asn1BER, val interface{}) (resp interface{}) {
 	switch tp {
-	case 0x03: return fmt.Sprintf("%v", string(val.([]byte)))
-	case 0x04: return fmt.Sprintf("%v", string(val.([]byte)))
+	case 0x03:
+		return fmt.Sprintf("%v", string(val.([]byte)))
+	case 0x04:
+		return fmt.Sprintf("%v", string(val.([]byte)))
 	}
-	return  val
+	return val
 }
 
 func getType(tp byte) string {
@@ -118,7 +117,7 @@ func stringToBytes(str string) string {
 	for _, b := range bytes {
 		bb := fmt.Sprintf("%X:", b)
 		if len(bb) == 2 {
-			bb = "0"+bb
+			bb = "0" + bb
 		}
 		arr += bb
 	}
