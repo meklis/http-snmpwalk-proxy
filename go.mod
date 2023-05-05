@@ -5,7 +5,7 @@ go 1.16
 replace github.com/meklis/http-snmpwalk-proxy => ./
 
 require (
-	github.com/gin-gonic/gin v1.7.4
+	github.com/gin-gonic/gin v1.9.0
 	github.com/gosnmp/gosnmp v1.32.0
 	github.com/meklis/go-cache v2.1.0+incompatible
 	github.com/satori/go.uuid v1.2.0
